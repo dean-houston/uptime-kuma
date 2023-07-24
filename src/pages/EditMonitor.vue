@@ -27,9 +27,6 @@
                                         <option value="keyword">
                                             HTTP(s) - {{ $t("Keyword") }}
                                         </option>
-                                        <option value="json-query">
-                                            HTTP(s) - {{ $t("Json Query") }}
-                                        </option>
                                         <option value="grpc-keyword">
                                             gRPC(s) - {{ $t("Keyword") }}
                                         </option>
@@ -38,10 +35,6 @@
                                         </option>
                                         <option value="docker">
                                             {{ $t("Docker Container") }}
-                                        </option>
-
-                                        <option value="real-browser">
-                                            HTTP(s) - Browser Engine (Chrome/Chromium) (Beta)
                                         </option>
                                     </optgroup>
 
@@ -61,9 +54,6 @@
                                         <option value="mqtt">
                                             MQTT
                                         </option>
-                                        <option value="kafka-producer">
-                                            Kafka Producer
-                                        </option>
                                         <option value="sqlserver">
                                             Microsoft SQL Server
                                         </option>
@@ -82,15 +72,18 @@
                                         <option value="redis">
                                             Redis
                                         </option>
-                                        <option value="tailscale-ping">
-                                            Tailscale Ping
+                                    </optgroup>
+
+                                    <!--
+                                    Hidden for now: Reason refer to Setting.vue
+                                    <optgroup :label="$t('Custom Monitor Type')">
+                                        <option value="browser">
+                                            (Beta) HTTP(s) - Browser Engine (Chrome/Firefox)
                                         </option>
                                     </optgroup>
                                 </select>
-                            </div>
-
-                            <div v-if="monitor.type === 'tailscale-ping'" class="alert alert-warning" role="alert">
-                                {{ $t("tailscalePingWarning") }}
+                                -->
+                                </select>
                             </div>
 
                             <!-- Friendly Name -->
@@ -110,7 +103,7 @@
                             </div>
 
                             <!-- URL -->
-                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query' || monitor.type === 'real-browser' " class="my-3">
+                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'browser' " class="my-3">
                                 <label for="url" class="form-label">{{ $t("URL") }}</label>
                                 <input id="url" v-model="monitor.url" type="url" class="form-control" pattern="https?://.+" required>
                             </div>
@@ -140,31 +133,6 @@
                                 </div>
                             </div>
 
-                            <!-- Invert keyword -->
-                            <div v-if="monitor.type === 'keyword' || monitor.type === 'grpc-keyword'" class="my-3 form-check">
-                                <input id="invert-keyword" v-model="monitor.invertKeyword" class="form-check-input" type="checkbox">
-                                <label class="form-check-label" for="invert-keyword">
-                                    {{ $t("Invert Keyword") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("invertKeywordDescription") }}
-                                </div>
-                            </div>
-
-                            <!-- Json Query -->
-                            <div v-if="monitor.type === 'json-query'" class="my-3">
-                                <label for="jsonPath" class="form-label">{{ $t("Json Query") }}</label>
-                                <input id="jsonPath" v-model="monitor.jsonPath" type="text" class="form-control" required>
-
-                                <!-- eslint-disable-next-line vue/no-v-html -->
-                                <div class="form-text" v-html="$t('jsonQueryDescription')">
-                                </div>
-                                <br>
-
-                                <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
-                                <input id="expectedValue" v-model="monitor.expectedValue" type="text" class="form-control" required>
-                            </div>
-
                             <!-- Game -->
                             <!-- GameDig only -->
                             <div v-if="monitor.type === 'gamedig'" class="my-3">
@@ -176,60 +144,9 @@
                                 </select>
                             </div>
 
-                            <template v-if="monitor.type === 'kafka-producer'">
-                                <!-- Kafka Brokers List -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerBrokers" class="form-label">{{ $t("Kafka Brokers") }}</label>
-                                    <VueMultiselect
-                                        id="kafkaProducerBrokers"
-                                        v-model="monitor.kafkaProducerBrokers"
-                                        :multiple="true"
-                                        :options="[]"
-                                        :placeholder="$t('Enter the list of brokers')"
-                                        :tag-placeholder="$t('Press Enter to add broker')"
-                                        :max-height="500"
-                                        :taggable="true"
-                                        :show-no-options="false"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="false"
-                                        :preselect-first="false"
-                                        @tag="addKafkaProducerBroker"
-                                    ></VueMultiselect>
-                                </div>
-
-                                <!-- Kafka Topic Name -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerTopic" class="form-label">{{ $t("Kafka Topic Name") }}</label>
-                                    <input id="kafkaProducerTopic" v-model="monitor.kafkaProducerTopic" type="text" class="form-control" required>
-                                </div>
-
-                                <!-- Kafka Producer Message -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerMessage" class="form-label">{{ $t("Kafka Producer Message") }}</label>
-                                    <input id="kafkaProducerMessage" v-model="monitor.kafkaProducerMessage" type="text" class="form-control" required>
-                                </div>
-
-                                <!-- Kafka SSL -->
-                                <div class="my-3 form-check">
-                                    <input id="kafkaProducerSsl" v-model="monitor.kafkaProducerSsl" class="form-check-input" type="checkbox">
-                                    <label class="form-check-label" for="kafkaProducerSsl">
-                                        {{ $t("Enable Kafka SSL") }}
-                                    </label>
-                                </div>
-
-                                <!-- Kafka SSL -->
-                                <div class="my-3 form-check">
-                                    <input id="kafkaProducerAllowAutoTopicCreation" v-model="monitor.kafkaProducerAllowAutoTopicCreation" class="form-check-input" type="checkbox">
-                                    <label class="form-check-label" for="kafkaProducerAllowAutoTopicCreation">
-                                        {{ $t("Enable Kafka Producer Auto Topic Creation") }}
-                                    </label>
-                                </div>
-                            </template>
-
                             <!-- Hostname -->
-                            <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius / Tailscale Ping only -->
-                            <div v-if="monitor.type === 'port' || monitor.type === 'ping' || monitor.type === 'dns' || monitor.type === 'steam' || monitor.type === 'gamedig' ||monitor.type === 'mqtt' || monitor.type === 'radius' || monitor.type === 'tailscale-ping'" class="my-3">
+                            <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius only -->
+                            <div v-if="monitor.type === 'port' || monitor.type === 'ping' || monitor.type === 'dns' || monitor.type === 'steam' || monitor.type === 'gamedig' ||monitor.type === 'mqtt' || monitor.type === 'radius'" class="my-3">
                                 <label for="hostname" class="form-label">{{ $t("Hostname") }}</label>
                                 <input id="hostname" v-model="monitor.hostname" type="text" class="form-control" :pattern="`${monitor.type === 'mqtt' ? mqttIpOrHostnameRegexPattern : ipOrHostnameRegexPattern}`" required>
                             </div>
@@ -445,7 +362,7 @@
 
                             <h2 v-if="monitor.type !== 'push'" class="mt-5 mb-2">{{ $t("Advanced") }}</h2>
 
-                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query' " class="my-3 form-check">
+                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' " class="my-3 form-check">
                                 <input id="expiry-notification" v-model="monitor.expiryNotification" class="form-check-input" type="checkbox">
                                 <label class="form-check-label" for="expiry-notification">
                                     {{ $t("Certificate Expiry Notification") }}
@@ -454,7 +371,7 @@
                                 </div>
                             </div>
 
-                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query' " class="my-3 form-check">
+                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' " class="my-3 form-check">
                                 <input id="ignore-tls" v-model="monitor.ignoreTls" class="form-check-input" type="checkbox" value="">
                                 <label class="form-check-label" for="ignore-tls">
                                     {{ $t("ignoreTLSError") }}
@@ -546,7 +463,7 @@
                             </button>
 
                             <!-- Proxies -->
-                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query'">
+                            <div v-if="monitor.type === 'http' || monitor.type === 'keyword'">
                                 <h2 class="mt-5 mb-2">{{ $t("Proxy") }}</h2>
                                 <p v-if="$root.proxyList.length === 0">
                                     {{ $t("Not available, please setup.") }}
@@ -573,58 +490,8 @@
                                 </button>
                             </div>
 
-                            <!-- Kafka SASL Options -->
-                            <!-- Kafka Producer only -->
-                            <template v-if="monitor.type === 'kafka-producer'">
-                                <h2 class="mt-5 mb-2">{{ $t("Kafka SASL Options") }}</h2>
-                                <div class="my-3">
-                                    <label class="form-label" for="kafkaProducerSaslMechanism">
-                                        {{ $t("Mechanism") }}
-                                    </label>
-                                    <VueMultiselect
-                                        id="kafkaProducerSaslMechanism"
-                                        v-model="monitor.kafkaProducerSaslOptions.mechanism"
-                                        :options="kafkaSaslMechanismOptions"
-                                        :multiple="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="false"
-                                        :placeholder="$t('Pick a SASL Mechanism...')"
-                                        :preselect-first="false"
-                                        :max-height="500"
-                                        :allow-empty="false"
-                                        :taggable="false"
-                                    ></VueMultiselect>
-                                </div>
-                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'None'">
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslUsername" class="form-label">{{ $t("Username") }}</label>
-                                        <input id="kafkaProducerSaslUsername" v-model="monitor.kafkaProducerSaslOptions.username" type="text" autocomplete="kafkaProducerSaslUsername" class="form-control">
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslPassword" class="form-label">{{ $t("Password") }}</label>
-                                        <input id="kafkaProducerSaslPassword" v-model="monitor.kafkaProducerSaslOptions.password" type="password" autocomplete="kafkaProducerSaslPassword" class="form-control">
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslAuthorizationIdentity" class="form-label">{{ $t("Authorization Identity") }}</label>
-                                        <input id="kafkaProducerSaslAuthorizationIdentity" v-model="monitor.kafkaProducerSaslOptions.authorizationIdentity" type="text" autocomplete="kafkaProducerSaslAuthorizationIdentity" class="form-control" required>
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslAccessKeyId" class="form-label">{{ $t("AccessKey Id") }}</label>
-                                        <input id="kafkaProducerSaslAccessKeyId" v-model="monitor.kafkaProducerSaslOptions.accessKeyId" type="text" autocomplete="kafkaProducerSaslAccessKeyId" class="form-control" required>
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslSecretAccessKey" class="form-label">{{ $t("Secret AccessKey") }}</label>
-                                        <input id="kafkaProducerSaslSecretAccessKey" v-model="monitor.kafkaProducerSaslOptions.secretAccessKey" type="password" autocomplete="kafkaProducerSaslSecretAccessKey" class="form-control" required>
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslSessionToken" class="form-label">{{ $t("Session Token") }}</label>
-                                        <input id="kafkaProducerSaslSessionToken" v-model="monitor.kafkaProducerSaslOptions.sessionToken" type="password" autocomplete="kafkaProducerSaslSessionToken" class="form-control">
-                                    </div>
-                                </div>
-                            </template>
-
                             <!-- HTTP Options -->
-                            <template v-if="monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query' ">
+                            <template v-if="monitor.type === 'http' || monitor.type === 'keyword' ">
                                 <h2 class="mt-5 mb-2">{{ $t("HTTP Options") }}</h2>
 
                                 <!-- Method -->
@@ -835,7 +702,6 @@ export default {
             },
             acceptedStatusCodeOptions: [],
             dnsresolvetypeOptions: [],
-            kafkaSaslMechanismOptions: [],
             ipOrHostnameRegexPattern: hostNameRegexPattern(),
             mqttIpOrHostnameRegexPattern: hostNameRegexPattern(true),
             gameList: null,
@@ -1099,21 +965,12 @@ message HealthCheckResponse {
             "TXT",
         ];
 
-        let kafkaSaslMechanismOptions = [
-            "None",
-            "plain",
-            "scram-sha-256",
-            "scram-sha-512",
-            "aws",
-        ];
-
         for (let i = 100; i <= 999; i++) {
             acceptedStatusCodeOptions.push(i.toString());
         }
 
         this.acceptedStatusCodeOptions = acceptedStatusCodeOptions;
         this.dnsresolvetypeOptions = dnsresolvetypeOptions;
-        this.kafkaSaslMechanismOptions = kafkaSaslMechanismOptions;
     },
     methods: {
         /** Initialize the edit monitor form */
@@ -1147,11 +1004,7 @@ message HealthCheckResponse {
                     mqttTopic: "",
                     mqttSuccessMessage: "",
                     authMethod: null,
-                    httpBodyEncoding: "json",
-                    kafkaProducerBrokers: [],
-                    kafkaProducerSaslOptions: {
-                        mechanism: "None",
-                    },
+                    httpBodyEncoding: "json"
                 };
 
                 if (this.$root.proxyList && !this.monitor.proxyId) {
@@ -1192,7 +1045,6 @@ message HealthCheckResponse {
                             this.monitor.childrenIDs = undefined;
                             this.monitor.forceInactive = undefined;
                             this.monitor.pathName = undefined;
-                            this.monitor.screenshot = undefined;
 
                             this.monitor.name = this.$t("cloneOf", [ this.monitor.name ]);
                             this.$refs.tagsManager.newTags = this.monitor.tags.map((monitorTag) => {
@@ -1217,10 +1069,6 @@ message HealthCheckResponse {
                 });
             }
 
-        },
-
-        addKafkaProducerBroker(newBroker) {
-            this.monitor.kafkaProducerBrokers.push(newBroker);
         },
 
         /**
@@ -1265,7 +1113,7 @@ message HealthCheckResponse {
                 this.monitor.body = JSON.stringify(JSON.parse(this.monitor.body), null, 4);
             }
 
-            if (this.monitor.type && this.monitor.type !== "http" && (this.monitor.type !== "keyword" || this.monitor.type !== "json-query")) {
+            if (this.monitor.type && this.monitor.type !== "http" && this.monitor.type !== "keyword") {
                 this.monitor.httpBodyEncoding = null;
             }
 

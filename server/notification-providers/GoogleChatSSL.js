@@ -4,9 +4,9 @@ const { setting } = require("../util-server");
 const { getMonitorRelativeURL } = require("../../src/util");
 const { DOWN, UP } = require("../../src/util");
 
-class GoogleChat extends NotificationProvider {
+class GoogleChatSSL extends NotificationProvider {
 
-    name = "GoogleChat";
+    name = "GoogleChatSSL";
 
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         let okMsg = "Sent Successfully.";
@@ -24,7 +24,7 @@ class GoogleChat extends NotificationProvider {
             //    textMsg += `*${monitorJSON.name}*\n`;
             //}
 
-            textMsg += `${msg}`
+            textMsg += `${msg}`;
 
            // const baseURL = await setting("primaryBaseURL");
            // if (baseURL && monitorJSON) {
@@ -47,4 +47,4 @@ class GoogleChat extends NotificationProvider {
     }
 }
 
-module.exports = GoogleChat;
+module.exports = GoogleChatSSL;

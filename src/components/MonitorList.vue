@@ -1,25 +1,17 @@
 <template>
     <div class="shadow-box mb-3" :style="boxStyle">
         <div class="list-header">
-            <div class="header-top">
-                <div class="placeholder"></div>
-                <div class="search-wrapper">
-                    <a v-if="searchText == ''" class="search-icon">
-                        <font-awesome-icon icon="search" />
-                    </a>
-                    <a v-if="searchText != ''" class="search-icon" @click="clearSearchText">
-                        <font-awesome-icon icon="times" />
-                    </a>
-                    <form>
-                        <input
-                            v-model="searchText" class="form-control search-input" :placeholder="$t('Search...')"
-                            autocomplete="off"
-                        />
-                    </form>
-                </div>
-            </div>
-            <div class="header-filter">
-                <MonitorListFilter :filterState="filterState" @update-filter="updateFilter" />
+            <div class="placeholder"></div>
+            <div class="search-wrapper">
+                <a v-if="searchText == ''" class="search-icon">
+                    <font-awesome-icon icon="search" />
+                </a>
+                <a v-if="searchText != ''" class="search-icon" @click="clearSearchText">
+                    <font-awesome-icon icon="times" />
+                </a>
+                <form>
+                    <input v-model="searchText" class="form-control search-input" :placeholder="$t('Search...')" autocomplete="off" />
+                </form>
             </div>
         </div>
         <div class="monitor-list" :class="{ scrollbar: scrollbar }">
@@ -27,23 +19,18 @@
                 {{ $t("No Monitors, please") }} <router-link to="/add">{{ $t("add one") }}</router-link>
             </div>
 
-            <MonitorListItem
-                v-for="(item, index) in sortedMonitorList" :key="index" :monitor="item"
-                :isSearch="searchText !== ''"
-            />
+            <MonitorListItem v-for="(item, index) in sortedMonitorList" :key="index" :monitor="item" :isSearch="searchText !== ''" />
         </div>
     </div>
 </template>
 
 <script>
 import MonitorListItem from "../components/MonitorListItem.vue";
-import MonitorListFilter from "./MonitorListFilter.vue";
 import { getMonitorRelativeURL } from "../util.ts";
 
 export default {
     components: {
         MonitorListItem,
-        MonitorListFilter,
     },
     props: {
         /** Should the scrollbar be shown */
@@ -55,11 +42,6 @@ export default {
         return {
             searchText: "",
             windowTop: 0,
-            filterState: {
-                status: null,
-                active: null,
-                tags: null,
-            }
         };
     },
     computed: {
@@ -90,8 +72,8 @@ export default {
                 const loweredSearchText = this.searchText.toLowerCase();
                 result = result.filter(monitor => {
                     return monitor.name.toLowerCase().includes(loweredSearchText)
-                        || monitor.tags.find(tag => tag.name.toLowerCase().includes(loweredSearchText)
-                            || tag.value?.toLowerCase().includes(loweredSearchText));
+                    || monitor.tags.find(tag => tag.name.toLowerCase().includes(loweredSearchText)
+                    || tag.value?.toLowerCase().includes(loweredSearchText));
                 });
             } else {
                 result = result.filter(monitor => monitor.parent === null);
@@ -123,27 +105,6 @@ export default {
                 return m1.name.localeCompare(m2.name);
             });
 
-            if (this.filterState.status != null && this.filterState.status.length > 0) {
-                result.map(monitor => {
-                    if (monitor.id in this.$root.lastHeartbeatList && this.$root.lastHeartbeatList[monitor.id]) {
-                        monitor.status = this.$root.lastHeartbeatList[monitor.id].status;
-                    }
-                });
-                result = result.filter(monitor => this.filterState.status.includes(monitor.status));
-            }
-
-            if (this.filterState.active != null && this.filterState.active.length > 0) {
-                result = result.filter(monitor => this.filterState.active.includes(monitor.active));
-            }
-
-            if (this.filterState.tags != null && this.filterState.tags.length > 0) {
-                result = result.filter(monitor => {
-                    return monitor.tags.map(tag => tag.tag_id) // convert to array of tag IDs
-                        .filter(monitorTagId => this.filterState.tags.includes(monitorTagId)) // perform Array Intersaction between filter and monitor's tags
-                        .length > 0;
-                });
-            }
-
             return result;
         },
     },
@@ -173,14 +134,7 @@ export default {
         /** Clear the search bar */
         clearSearchText() {
             this.searchText = "";
-        },
-        /**
-         * Update the MonitorList Filter
-         * @param {object} newFilter Object with new filter
-         */
-        updateFilter(newFilter) {
-            this.filterState = newFilter;
-        },
+        }
     },
 };
 </script>
@@ -205,22 +159,13 @@ export default {
     margin: -10px;
     margin-bottom: 10px;
     padding: 10px;
+    display: flex;
+    justify-content: space-between;
 
     .dark & {
         background-color: $dark-header-bg;
         border-bottom: 0;
     }
-}
-
-.header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header-filter {
-    display: flex;
-    align-items: center;
 }
 
 @media (max-width: 770px) {
@@ -271,4 +216,5 @@ export default {
     padding-left: 67px;
     margin-top: 5px;
 }
+
 </style>

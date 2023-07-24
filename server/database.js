@@ -4,6 +4,7 @@ const { setSetting, setting } = require("./util-server");
 const { log, sleep } = require("../src/util");
 const knex = require("knex");
 
+
 /**
  * Database & App Data Folder
  */
@@ -20,8 +21,6 @@ class Database {
      * User Upload Dir (Default: ./data/upload)
      */
     static uploadDir;
-
-    static screenshotDir;
 
     static path;
 
@@ -71,9 +70,6 @@ class Database {
         "patch-monitor-tls.sql": true,
         "patch-maintenance-cron.sql": true,
         "patch-add-parent-monitor.sql": true,
-        "patch-add-invert-keyword.sql": true,
-        "patch-added-json-query.sql": true,
-        "patch-added-kafka-producer.sql": true,
     };
 
     /**
@@ -101,12 +97,6 @@ class Database {
 
         if (! fs.existsSync(Database.uploadDir)) {
             fs.mkdirSync(Database.uploadDir, { recursive: true });
-        }
-
-        // Create screenshot dir
-        Database.screenshotDir = Database.dataDir + "screenshots/";
-        if (! fs.existsSync(Database.screenshotDir)) {
-            fs.mkdirSync(Database.screenshotDir, { recursive: true });
         }
 
         log.info("db", `Data Dir: ${Database.dataDir}`);
@@ -165,12 +155,12 @@ class Database {
             await R.exec("PRAGMA journal_mode = WAL");
         }
         await R.exec("PRAGMA cache_size = -12000");
-        await R.exec("PRAGMA auto_vacuum = INCREMENTAL");
+        await R.exec("PRAGMA auto_vacuum = FULL");
 
         // This ensures that an operating system crash or power failure will not corrupt the database.
         // FULL synchronous is very safe, but it is also slower.
         // Read more: https://sqlite.org/pragma.html#pragma_synchronous
-        await R.exec("PRAGMA synchronous = NORMAL");
+        await R.exec("PRAGMA synchronous = FULL");
 
         if (!noLog) {
             log.info("db", "SQLite config:");

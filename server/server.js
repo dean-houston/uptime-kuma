@@ -15,25 +15,18 @@ dayjs.extend(require("dayjs/plugin/customParseFormat"));
 require("dotenv").config();
 
 // Check Node.js Version
-const nodeVersion = process.versions.node;
-
-// Get the required Node.js version from package.json
-const requiredNodeVersions = require("../package.json").engines.node;
-const bannedNodeVersions = " < 14 || 20.0.* || 20.1.* || 20.2.* || 20.3.* ";
+const nodeVersion = parseInt(process.versions.node.split(".")[0]);
+const requiredVersion = 14;
 console.log(`Your Node.js version: ${nodeVersion}`);
 
-const semver = require("semver");
-const requiredNodeVersionsComma = requiredNodeVersions.split("||").map((version) => version.trim()).join(", ");
-
-// Exit Uptime Kuma immediately if the Node.js version is banned
-if (semver.satisfies(nodeVersion, bannedNodeVersions)) {
-    console.error("\x1b[31m%s\x1b[0m", `Error: Your Node.js version: ${nodeVersion} is not supported, please upgrade your Node.js to ${requiredNodeVersionsComma}.`);
-    process.exit(-1);
+// See more: https://github.com/louislam/uptime-kuma/issues/3138
+if (nodeVersion >= 20) {
+    console.warn("\x1b[31m%s\x1b[0m", "Warning: Uptime Kuma is currently not stable on Node.js >= 20, please use Node.js 18.");
 }
 
-// Warning if the Node.js version is not in the support list, but it maybe still works
-if (!semver.satisfies(nodeVersion, requiredNodeVersions)) {
-    console.warn("\x1b[31m%s\x1b[0m", `Warning: Your Node.js version: ${nodeVersion} is not officially supported, please upgrade your Node.js to ${requiredNodeVersionsComma}.`);
+if (nodeVersion < requiredVersion) {
+    console.error(`Error: Your Node.js version is not supported, please upgrade to Node.js >= ${requiredVersion}.`);
+    process.exit(-1);
 }
 
 const args = require("args-parser")(process.argv);
@@ -49,7 +42,6 @@ if (! process.env.NODE_ENV) {
 }
 
 log.info("server", "Node Env: " + process.env.NODE_ENV);
-log.info("server", "Inside Container: " + process.env.UPTIME_KUMA_IS_CONTAINER === "1");
 
 log.info("server", "Importing Node libraries");
 const fs = require("fs");
@@ -156,7 +148,6 @@ const { generalSocketHandler } = require("./socket-handlers/general-socket-handl
 const { Settings } = require("./settings");
 const { CacheableDnsHttpAgent } = require("./cacheable-dns-http-agent");
 const apicache = require("./modules/apicache");
-const { resetChrome } = require("./monitor-types/real-browser-monitor-type");
 
 app.use(express.json());
 
@@ -168,6 +159,12 @@ app.use(function (req, res, next) {
     res.removeHeader("X-Powered-By");
     next();
 });
+
+/**
+ * Use for decode the auth object
+ * @type {null}
+ */
+let jwtSecret = null;
 
 /**
  * Show Setup Page
@@ -216,7 +213,6 @@ let needSetup = false;
     });
 
     if (isDev) {
-        app.use(express.urlencoded({ extended: true }));
         app.post("/test-webhook", async (request, response) => {
             log.debug("test", request.headers);
             log.debug("test", request.body);
@@ -271,7 +267,7 @@ let needSetup = false;
     log.info("server", "Adding socket handler");
     io.on("connection", async (socket) => {
 
-        sendInfo(socket, true);
+        sendInfo(socket);
 
         if (needSetup) {
             log.info("server", "Redirect to setup page");
@@ -288,7 +284,7 @@ let needSetup = false;
             log.info("auth", `Login by token. IP=${clientIP}`);
 
             try {
-                let decoded = jwt.verify(token, server.jwtSecret);
+                let decoded = jwt.verify(token, jwtSecret);
 
                 log.info("auth", "Username from JWT: " + decoded.username);
 
@@ -359,7 +355,7 @@ let needSetup = false;
                         ok: true,
                         token: jwt.sign({
                             username: data.username,
-                        }, server.jwtSecret),
+                        }, jwtSecret),
                     });
                 }
 
@@ -389,7 +385,7 @@ let needSetup = false;
                             ok: true,
                             token: jwt.sign({
                                 username: data.username,
-                            }, server.jwtSecret),
+                            }, jwtSecret),
                         });
                     } else {
 
@@ -644,9 +640,6 @@ let needSetup = false;
                 monitor.accepted_statuscodes_json = JSON.stringify(monitor.accepted_statuscodes);
                 delete monitor.accepted_statuscodes;
 
-                monitor.kafkaProducerBrokers = JSON.stringify(monitor.kafkaProducerBrokers);
-                monitor.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
-
                 bean.import(monitor);
                 bean.user_id = socket.userID;
 
@@ -724,7 +717,6 @@ let needSetup = false;
                 bean.maxretries = monitor.maxretries;
                 bean.port = parseInt(monitor.port);
                 bean.keyword = monitor.keyword;
-                bean.invertKeyword = monitor.invertKeyword;
                 bean.ignoreTls = monitor.ignoreTls;
                 bean.expiryNotification = monitor.expiryNotification;
                 bean.upsideDown = monitor.upsideDown;
@@ -759,13 +751,6 @@ let needSetup = false;
                 bean.radiusCallingStationId = monitor.radiusCallingStationId;
                 bean.radiusSecret = monitor.radiusSecret;
                 bean.httpBodyEncoding = monitor.httpBodyEncoding;
-                bean.expectedValue = monitor.expectedValue;
-                bean.jsonPath = monitor.jsonPath;
-                bean.kafkaProducerTopic = monitor.kafkaProducerTopic;
-                bean.kafkaProducerBrokers = JSON.stringify(monitor.kafkaProducerBrokers);
-                bean.kafkaProducerAllowAutoTopicCreation = monitor.kafkaProducerAllowAutoTopicCreation;
-                bean.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
-                bean.kafkaProducerMessage = monitor.kafkaProducerMessage;
 
                 bean.validate();
 
@@ -920,8 +905,6 @@ let needSetup = false;
                     delete server.monitorList[monitorID];
                 }
 
-                const startTime = Date.now();
-
                 await R.exec("DELETE FROM monitor WHERE id = ? AND user_id = ? ", [
                     monitorID,
                     socket.userID,
@@ -929,10 +912,6 @@ let needSetup = false;
 
                 // Fix #2880
                 apicache.clear();
-
-                const endTime = Date.now();
-
-                log.info("DB", `Delete Monitor completed in : ${endTime - startTime} ms`);
 
                 callback({
                     ok: true,
@@ -1177,8 +1156,6 @@ let needSetup = false;
                     await doubleCheckPassword(socket, currentPassword);
                 }
 
-                const previousChromeExecutable = await Settings.get("chromeExecutable");
-
                 await setSettings("general", data);
                 server.entryPage = data.entryPage;
 
@@ -1187,12 +1164,6 @@ let needSetup = false;
                 // Also need to apply timezone globally
                 if (data.serverTimezone) {
                     await server.setTimezone(data.serverTimezone);
-                }
-
-                // If Chrome Executable is changed, need to reset the browser
-                if (previousChromeExecutable !== data.chromeExecutable) {
-                    log.info("settings", "Chrome executable is changed. Resetting Chrome...");
-                    await resetChrome();
                 }
 
                 callback({
@@ -1396,14 +1367,13 @@ let needSetup = false;
                                 maxretries: monitorListData[i].maxretries,
                                 port: monitorListData[i].port,
                                 keyword: monitorListData[i].keyword,
-                                invertKeyword: monitorListData[i].invertKeyword,
                                 ignoreTls: monitorListData[i].ignoreTls,
                                 upsideDown: monitorListData[i].upsideDown,
                                 maxredirects: monitorListData[i].maxredirects,
                                 accepted_statuscodes: monitorListData[i].accepted_statuscodes,
                                 dns_resolve_type: monitorListData[i].dns_resolve_type,
                                 dns_resolve_server: monitorListData[i].dns_resolve_server,
-                                notificationIDList: monitorListData[i].notificationIDList,
+                                notificationIDList: {},
                                 proxy_id: monitorListData[i].proxy_id || null,
                             };
 
@@ -1590,8 +1560,6 @@ let needSetup = false;
         await shutdownFunction();
     });
 
-    server.start();
-
     server.httpServer.listen(port, hostname, () => {
         if (hostname) {
             log.info("server", `Listening on ${hostname}:${port}`);
@@ -1669,7 +1637,6 @@ async function afterLogin(socket, user) {
     socket.join(user.id);
 
     let monitorList = await server.sendMonitorList(socket);
-    sendInfo(socket);
     server.sendMaintenanceList(socket);
     sendNotificationList(socket);
     sendProxyList(socket);
@@ -1737,7 +1704,7 @@ async function initDatabase(testMode = false) {
         needSetup = true;
     }
 
-    server.jwtSecret = jwtSecretBean.value;
+    jwtSecret = jwtSecretBean.value;
 }
 
 /**

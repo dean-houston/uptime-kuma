@@ -141,21 +141,12 @@ async function sendAPIKeyList(socket) {
 /**
  * Emits the version information to the client.
  * @param {Socket} socket Socket.io socket instance
- * @param {boolean} hideVersion
  * @returns {Promise<void>}
  */
-async function sendInfo(socket, hideVersion = false) {
-    let version;
-    let latestVersion;
-
-    if (!hideVersion) {
-        version = checkVersion.version;
-        latestVersion = checkVersion.latestVersion;
-    }
-
+async function sendInfo(socket) {
     socket.emit("info", {
-        version,
-        latestVersion,
+        version: checkVersion.version,
+        latestVersion: checkVersion.latestVersion,
         primaryBaseURL: await setting("primaryBaseURL"),
         serverTimezone: await server.getTimezone(),
         serverTimezoneOffset: server.getTimezoneOffset(),

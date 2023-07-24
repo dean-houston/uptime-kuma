@@ -6,10 +6,9 @@ class MonitorType {
      *
      * @param {Monitor} monitor
      * @param {Heartbeat} heartbeat
-     * @param {UptimeKumaServer} server
      * @returns {Promise<void>}
      */
-    async check(monitor, heartbeat, server) {
+    async check(monitor, heartbeat) {
         throw new Error("You need to override check()");
     }
 

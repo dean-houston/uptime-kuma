@@ -117,6 +117,7 @@ export default {
                 "clicksendsms": "ClickSend SMS",
                 "discord": "Discord",
                 "GoogleChat": "Google Chat (Google Workspace)",
+		"GoogleChatSSL": "Google Chat (SSL Only)",
                 "gorush": "Gorush",
                 "gotify": "Gotify",
                 "HomeAssistant": "Home Assistant",
@@ -164,7 +165,6 @@ export default {
                 "SMSManager": "SmsManager (smsmanager.cz)",
                 "WeCom": "WeCom (企业微信群机器人)",
                 "ServerChan": "ServerChan (Server酱)",
-                "smsc": "SMSC",
             };
 
             // Sort by notification name

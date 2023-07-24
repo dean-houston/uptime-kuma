@@ -6,11 +6,11 @@ const AliyunSms = require("./notification-providers/aliyun-sms");
 const Apprise = require("./notification-providers/apprise");
 const Bark = require("./notification-providers/bark");
 const ClickSendSMS = require("./notification-providers/clicksendsms");
-const SMSC = require("./notification-providers/smsc");
 const DingDing = require("./notification-providers/dingding");
 const Discord = require("./notification-providers/discord");
 const Feishu = require("./notification-providers/feishu");
 const FreeMobile = require("./notification-providers/freemobile");
+const GoogleChatSSL = require("./notification-providers/GoogleChatSSL");
 const GoogleChat = require("./notification-providers/google-chat");
 const Gorush = require("./notification-providers/gorush");
 const Gotify = require("./notification-providers/gotify");
@@ -69,12 +69,12 @@ class Notification {
             new Apprise(),
             new Bark(),
             new ClickSendSMS(),
-            new SMSC(),
             new DingDing(),
             new Discord(),
             new Feishu(),
             new FreeMobile(),
             new GoogleChat(),
+	    new GoogleChatSSL(),
             new Gorush(),
             new Gotify(),
             new HomeAssistant(),
